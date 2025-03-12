@@ -1,8 +1,10 @@
-import mongoose, {schema} from "mongoose"
+import mongoose from "mongoose"
+import pkg from 'mongoose';
+const {Schema} = pkg;
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 
-const userSchema = new schema(
+const userSchema = new Schema(
     {
         username:{
             type:String,
@@ -19,7 +21,7 @@ const userSchema = new schema(
             lowercase:true,
             trim: true,
         },
-        fullname:{
+        fullName:{
             type:String,
             required:true,
             trim: true,
@@ -29,11 +31,11 @@ const userSchema = new schema(
             type:String,
             required:true, 
         },
-        coverHistory:{
+        coverimage:{
             type: String,
         },
         watchHistory:{
-            type:schema.Types.ObjectId,
+            type:Schema.Types.ObjectId,
             ref:"video"
         },
         password:{
@@ -57,13 +59,13 @@ userSchema.pre("save", async function(next){
 userSchema.methods.isPasswordCorrect = async function(password) {
    return await bcrypt.compare(password, this.password)
 }
-userSchema.methods,generateAccessToken=function(){
+userSchema.methods.generateAccessToken=function(){
     jwt.sign(
         {
            _id: this.id,
            email:this.email,
            username:this.username,
-           fullname:this.fullname
+           fullname:this.fullName
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
@@ -71,13 +73,13 @@ userSchema.methods,generateAccessToken=function(){
         }
     )
 }
-userSchema.methods,generateRefreshToken=function(){
+userSchema.methods.generateRefreshToken=function(){
     jwt.sign(
         {
            _id: this.id,
            email:this.email,
            username:this.username,
-           fullname:this.fullname
+           fullname:this.fullName
         },
         process.env.REFRESH_TOKEN_SECRET,
         {

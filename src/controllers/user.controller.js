@@ -15,12 +15,12 @@ const registerUser = asyncHandler( async (req,res)=>{
     //check for creation
     //return res
 
-    const {fullname, email, username, password}=req.body
+    const {fullName, email, username, password}=req.body
     console.log("email", email)
     
     //validation
     if(
-        [fullname, email, username, password].some((field)=>
+        [fullName, email, username, password].some((field)=>
         field?.trim() === "")
     ){
         throw new ApiError(400, 'All fields are required')
@@ -28,7 +28,7 @@ const registerUser = asyncHandler( async (req,res)=>{
 
     //checking if user is already exists
 
-    const exixstedUser = User.findOne({
+    const exixstedUser = await User.findOne({
         $or: [{username}, {email}]
     })
 
@@ -38,7 +38,7 @@ const registerUser = asyncHandler( async (req,res)=>{
 
     //accessing other things through middleware
     const avatarLocalPath = req.files?.avatar[0]?.path
-    const coverImageLocalPath = req.files?.converimage[0]?.path
+    const coverImageLocalPath = req.files?.coverimage[0]?.path
 
     if(!coverImageLocalPath){
         throw new ApiError(400, "cover image is required")
@@ -63,7 +63,7 @@ const registerUser = asyncHandler( async (req,res)=>{
     //creating user object in db and saving it to the database using mongoose model function.
 
     const user = await User.create({
-        fullname,
+        fullName,
         avatar: avatar.url,
         coverimage: coverimage?.url || "",
         email,
