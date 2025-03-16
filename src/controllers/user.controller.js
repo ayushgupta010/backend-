@@ -6,12 +6,25 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 
 const generateRefreshandAccessToken = async(userId)=>{
     try {
+       
         const user = await User.findById(userId)
-        const accessToken = generateAccessToken()
-        const refreshToken = generateRefreshToken()
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+       
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+        
+       
+        if (!accessToken || !refreshToken) {
+            console.error("Error: Failed to generate tokens");
+            throw new ApiError(500, "Failed to generate tokens");
+        }
+
+    
 
         user.refreshToken = refreshToken 
-        await user.save({validateBeforeSafe: false})
+        await user.save({validateBeforeSave: false})
 
         return{accessToken, refreshToken}
     } catch (error) {
@@ -107,7 +120,7 @@ const loginUser = asyncHandler(async(req, res)=>{
 
     const{email, username, password}=req.body
 
-    if(!username||!email){
+    if(!username && !email){
         throw new ApiError(400,"username or email is requierd")
     }
 
@@ -121,15 +134,15 @@ const loginUser = asyncHandler(async(req, res)=>{
 
     //check password
 
-    const ifPasswordValid = await user.ifPasswordCorrect(password)
+    const ifPasswordValid = await user.isPasswordCorrect(password)
 
     if(!password){
         throw new ApiError(401, "Password is incorrect")
     }
 
-    await generateRefreshandAccessToken(user._id )
+    const {accessToken, refreshToken} = await generateRefreshandAccessToken(user._id )
 
-    const logedInUser = await user.findOne(user._id)
+    const logedInUser = await User.findOne(user._id)
     .select("-password -refreshToken")
 
     //send token to the user
@@ -147,10 +160,10 @@ const loginUser = asyncHandler(async(req, res)=>{
         new ApiResponse(
             200,
             {
-              user:logedInUser, accessToken, 
-            }
-        ),
-        "user loggedIn succesfully"
+              user: logedInUser, accessToken, refreshToken
+            },
+              "user loggedIn succesfully"
+        )
     )
 })
 
@@ -158,8 +171,8 @@ const logoutUser = asyncHandler(async(req, res)=>{
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set:{
-                refreshToken: undefined
+            $unset:{
+                refreshToken: 1
             }
         },
         {
@@ -174,8 +187,8 @@ const logoutUser = asyncHandler(async(req, res)=>{
 
     return res
     .status(200)
-    .clearcookie("accessToken", options)
-    .clearcookie("refreshToken", options)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
     .json(
         new ApiResponse(
             200,
